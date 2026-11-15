@@ -4,7 +4,7 @@
 
 ## Стек
 
-React, TypeScript, Vite, axios, React Router, Redux Toolkit (запросы через redux-thunk внутри `configureStore`), redux-persist, Material UI.
+React, TypeScript, Vite, axios, React Router, Redux Toolkit и RTK Query (redux-thunk уже входит в `configureStore`), redux-persist, React Hook Form, Zod, Material UI.
 
 ## Ресурс на mockapi.io
 

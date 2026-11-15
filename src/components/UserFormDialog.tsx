@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -6,9 +6,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { addUser, clearSaveError, editUser } from "../usersSlice.ts";
-import { useAppDispatch, useAppSelector } from "../hooks.ts";
-import type { User, UserInput } from "../types.ts";
+import { Controller, FormProvider, useForm, useFormContext } from "react-hook-form";
+import { queryError } from "../api.ts";
+import { toFormValues } from "../mapUser.ts";
+import type { User } from "../types.ts";
+import { emptyUserForm, userFormSchema, type UserFormValues } from "../userSchema.ts";
+import { useAddUserMutation, useEditUserMutation } from "../usersApi.ts";
 
 type Props = {
   open: boolean;
@@ -16,127 +19,99 @@ type Props = {
   onClose: () => void;
 };
 
-const empty: UserInput = {
-  name: "",
-  email: "",
-  phone: "",
-  city: "",
-  company: "",
-  position: "",
-  avatar: "",
-  about: "",
+type FieldProps = {
+  name: keyof UserFormValues;
+  label: string;
+  required?: boolean;
+  type?: string;
+  multiline?: boolean;
+  minRows?: number;
+  hint?: string;
+  autoFocus?: boolean;
 };
 
-function toInput(user: User): UserInput {
-  return {
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    city: user.city,
-    company: user.company,
-    position: user.position,
-    avatar: user.avatar,
-    about: user.about,
-  };
-}
-
-function trimInput(input: UserInput): UserInput {
-  return {
-    name: input.name.trim(),
-    email: input.email.trim(),
-    phone: input.phone.trim(),
-    city: input.city.trim(),
-    company: input.company.trim(),
-    position: input.position.trim(),
-    avatar: input.avatar.trim(),
-    about: input.about.trim(),
-  };
-}
-
-function validate(input: UserInput): Partial<Record<keyof UserInput, string>> {
-  const errors: Partial<Record<keyof UserInput, string>> = {};
-  if (input.name.length < 2) errors.name = "Укажите имя, минимум 2 символа.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) errors.email = "Укажите корректную почту.";
-  if (input.phone && input.phone.length < 5) errors.phone = "Слишком короткий номер.";
-  if (input.avatar && !/^https?:\/\/\S+$/i.test(input.avatar)) {
-    errors.avatar = "Ссылка должна начинаться с http:// или https://.";
-  }
-  return errors;
-}
-
-export function UserFormDialog({ open, user, onClose }: Props) {
-  const saving = useAppSelector((state) => state.users.saving);
+function FormTextField({ name, label, required, type, multiline, minRows, hint, autoFocus }: FieldProps) {
+  const { control } = useFormContext<UserFormValues>();
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        if (!saving) onClose();
-      }}
-      fullWidth
-      maxWidth="sm"
-    >
-      {open && <UserForm key={user?.id ?? "new"} user={user} onClose={onClose} />}
-    </Dialog>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field, fieldState }) => (
+        <TextField
+          {...field}
+          autoFocus={autoFocus}
+          label={label}
+          type={type}
+          required={required}
+          multiline={multiline}
+          minRows={minRows}
+          error={Boolean(fieldState.error)}
+          helperText={fieldState.error?.message ?? hint}
+        />
+      )}
+    />
   );
 }
 
+export function UserFormDialog({ open, user, onClose }: Props) {
+  if (!open) return null;
+  return <UserForm key={user?.id ?? "new"} user={user} onClose={onClose} />;
+}
+
 function UserForm({ user, onClose }: { user: User | null; onClose: () => void }) {
-  const dispatch = useAppDispatch();
-  const saving = useAppSelector((state) => state.users.saving);
-  const saveError = useAppSelector((state) => state.users.saveError);
-  const [values, setValues] = useState<UserInput>(() => (user ? toInput(user) : empty));
-  const [errors, setErrors] = useState<Partial<Record<keyof UserInput, string>>>({});
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: user ? toFormValues(user) : emptyUserForm,
+  });
+  const [addUser, addState] = useAddUserMutation();
+  const [editUser, editState] = useEditUserMutation();
+  const saving = user ? editState.isLoading : addState.isLoading;
+  const saveError = user ? editState.error : addState.error;
 
-  useEffect(() => {
-    dispatch(clearSaveError());
-  }, [dispatch]);
-
-  function setField<K extends keyof UserInput>(key: K, value: UserInput[K]) {
-    setValues((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    const input = trimInput(values);
-    const nextErrors = validate(input);
-    setErrors(nextErrors);
-    if (Object.values(nextErrors).some(Boolean)) return;
-
-    const result = user ? await dispatch(editUser({ id: user.id, input, createdAt: user.createdAt })) : await dispatch(addUser(input));
-
-    if (addUser.fulfilled.match(result) || editUser.fulfilled.match(result)) onClose();
-  }
-
-  function handleClose() {
-    if (!saving) onClose();
+  async function onSubmit(values: UserFormValues) {
+    try {
+      if (user) await editUser({ id: user.id, input: values, createdAt: user.createdAt }).unwrap();
+      else await addUser(values).unwrap();
+      onClose();
+    } catch {
+      // Текст ошибки уже лежит в состоянии мутации.
+    }
   }
 
   return (
-    <>
-      <DialogTitle>{user ? "Редактирование" : "Новый пользователь"}</DialogTitle>
-      <form noValidate onSubmit={(event) => void handleSubmit(event)}>
-        <DialogContent sx={{ display: "grid", gap: 2 }}>
-          {saveError && <Alert severity="error">{saveError}</Alert>}
-          <TextField autoFocus label="Имя" value={values.name} onChange={(event) => setField("name", event.target.value)} error={Boolean(errors.name)} helperText={errors.name} required />
-          <TextField label="Почта" type="email" value={values.email} onChange={(event) => setField("email", event.target.value)} error={Boolean(errors.email)} helperText={errors.email} required />
-          <TextField label="Телефон" value={values.phone} onChange={(event) => setField("phone", event.target.value)} error={Boolean(errors.phone)} helperText={errors.phone} />
-          <TextField label="Город" value={values.city} onChange={(event) => setField("city", event.target.value)} />
-          <TextField label="Компания" value={values.company} onChange={(event) => setField("company", event.target.value)} />
-          <TextField label="Должность" value={values.position} onChange={(event) => setField("position", event.target.value)} />
-          <TextField label="Ссылка на фото" value={values.avatar} onChange={(event) => setField("avatar", event.target.value)} error={Boolean(errors.avatar)} helperText={errors.avatar || "Необязательно. Если пусто, будут инициалы."} />
-          <TextField label="О себе" value={values.about} onChange={(event) => setField("about", event.target.value)} multiline minRows={3} />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleClose} disabled={saving}>
-            Отмена
-          </Button>
-          <Button type="submit" variant="contained" disabled={saving}>
-            {saving ? "Сохранение..." : "Сохранить"}
-          </Button>
-        </DialogActions>
-      </form>
-    </>
+    <FormProvider {...form}>
+      <Dialog
+        open
+        onClose={() => {
+          if (!saving) onClose();
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{user ? "Редактирование" : "Новый пользователь"}</DialogTitle>
+        <form noValidate onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+          <DialogContent sx={{ display: "grid", gap: 2 }}>
+            {saveError && <Alert severity="error">{queryError(saveError, "Не удалось сохранить пользователя.")}</Alert>}
+            <FormTextField name="name" label="Имя" required autoFocus />
+            <FormTextField name="email" label="Почта" type="email" required />
+            <FormTextField name="phone" label="Телефон" />
+            <FormTextField name="city" label="Город" />
+            <FormTextField name="company" label="Компания" />
+            <FormTextField name="position" label="Должность" />
+            <FormTextField name="avatar" label="Ссылка на фото" hint="Необязательно. Если пусто, будут инициалы." />
+            <FormTextField name="about" label="О себе" multiline minRows={3} />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => { if (!saving) onClose(); }} disabled={saving}>
+              Отмена
+            </Button>
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </FormProvider>
   );
 }
