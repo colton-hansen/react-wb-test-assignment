@@ -3,24 +3,24 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { formatDate, roleLine } from "../format.ts";
+import { formatDate, joinFilled } from "../format.ts";
 import type { User } from "../types.ts";
 import { Field } from "./Field.tsx";
 import { UserAvatar } from "./UserAvatar.tsx";
 
-type Props = {
+type UserDetailsCardProps = {
   user: User;
   onEdit: () => void;
 };
 
-export function UserDetailsCard({ user, onEdit }: Props) {
+export function UserDetailsCard({ user, onEdit }: UserDetailsCardProps) {
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" } }}>
         <UserAvatar name={user.name} avatar={user.avatar} size={84} />
         <Box sx={{ flex: 1 }}>
           <Typography variant="h4">{user.name || "Без имени"}</Typography>
-          <Typography color="text.secondary">{roleLine([user.position, user.company])}</Typography>
+          <Typography color="text.secondary">{joinFilled([user.position, user.company], "Должность не указана")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             ID {user.id}
           </Typography>

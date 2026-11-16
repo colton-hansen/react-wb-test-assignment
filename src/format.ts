@@ -1,9 +1,5 @@
-export function contactLine(parts: Array<string | undefined>): string {
-  return parts.filter(Boolean).join(", ") || "Контакты не заполнены";
-}
-
-export function roleLine(parts: Array<string | undefined>): string {
-  return parts.filter(Boolean).join(", ") || "Должность не указана";
+export function joinFilled(parts: Array<string | undefined>, fallback: string): string {
+  return parts.filter(Boolean).join(", ") || fallback;
 }
 
 export function initials(name: string): string {

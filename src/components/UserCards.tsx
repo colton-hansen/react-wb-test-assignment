@@ -4,16 +4,16 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useNavigate } from "react-router-dom";
-import { contactLine } from "../format.ts";
+import { joinFilled } from "../format.ts";
 import type { User } from "../types.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 
-type Props = {
+type UserCardsProps = {
   users: User[];
   onEdit: (user: User) => void;
 };
 
-export function UserCards({ users, onEdit }: Props) {
+export function UserCards({ users, onEdit }: UserCardsProps) {
   const navigate = useNavigate();
 
   return (
@@ -32,7 +32,7 @@ export function UserCards({ users, onEdit }: Props) {
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ mt: 1.5 }}>
-            {contactLine([user.phone, user.city, user.company])}
+            {joinFilled([user.phone, user.city, user.company], "Контакты не заполнены")}
           </Typography>
           <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
             <Button size="small" onClick={() => navigate(`/users/${user.id}`)}>

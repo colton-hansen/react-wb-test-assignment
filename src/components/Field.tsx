@@ -1,7 +1,12 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
-export function Field({ label, value }: { label: string; value: string }) {
+type FieldProps = {
+  label: string;
+  value: string;
+};
+
+export function Field({ label, value }: FieldProps) {
   return (
     <Box>
       <Typography variant="caption" color="text.secondary">

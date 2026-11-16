@@ -8,11 +8,11 @@ import { useAppSelector } from "../hooks.ts";
 import { selectUserCount } from "../selectors.ts";
 import { useGetUsersQuery } from "../usersApi.ts";
 
-type Props = {
+type UsersHeaderProps = {
   onCreate: () => void;
 };
 
-export const UsersHeader = memo(function UsersHeader({ onCreate }: Props) {
+export const UsersHeader = memo(function UsersHeader({ onCreate }: UsersHeaderProps) {
   const count = useAppSelector(selectUserCount);
   const { isLoading } = useGetUsersQuery();
 

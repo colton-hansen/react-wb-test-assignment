@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import type { User } from "../types.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 
-type Props = {
+type UserTableProps = {
   users: User[];
   onEdit: (user: User) => void;
 };
@@ -33,7 +33,7 @@ const clippedCell = {
   whiteSpace: "nowrap",
 } as const;
 
-export function UserTable({ users, onEdit }: Props) {
+export function UserTable({ users, onEdit }: UserTableProps) {
   const navigate = useNavigate();
 
   return (

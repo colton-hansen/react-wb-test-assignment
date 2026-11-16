@@ -13,12 +13,12 @@ import { useGetUsersQuery } from "../usersApi.ts";
 import { UserCards } from "./UserCards.tsx";
 import { UserTable } from "./UserTable.tsx";
 
-type Props = {
+type UsersListProps = {
   onCreate: () => void;
   onEdit: (user: User) => void;
 };
 
-export const UsersList = memo(function UsersList({ onCreate, onEdit }: Props) {
+export const UsersList = memo(function UsersList({ onCreate, onEdit }: UsersListProps) {
   const theme = useTheme();
   const compact = useMediaQuery(theme.breakpoints.down("md"));
   const users = useAppSelector(selectVisibleUsers);

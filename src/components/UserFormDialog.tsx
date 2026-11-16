@@ -8,18 +8,22 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { Controller, FormProvider, useForm, useFormContext } from "react-hook-form";
 import { queryError } from "../api.ts";
-import { toFormValues } from "../mapUser.ts";
 import type { User } from "../types.ts";
 import { emptyUserForm, userFormSchema, type UserFormValues } from "../userSchema.ts";
 import { useAddUserMutation, useEditUserMutation } from "../usersApi.ts";
 
-type Props = {
+type UserFormDialogProps = {
   open: boolean;
   user: User | null;
   onClose: () => void;
 };
 
-type FieldProps = {
+type UserFormProps = {
+  user: User | null;
+  onClose: () => void;
+};
+
+type FormTextFieldProps = {
   name: keyof UserFormValues;
   label: string;
   required?: boolean;
@@ -30,7 +34,7 @@ type FieldProps = {
   autoFocus?: boolean;
 };
 
-function FormTextField({ name, label, required, type, multiline, minRows, hint, autoFocus }: FieldProps) {
+function FormTextField({ name, label, required, type, multiline, minRows, hint, autoFocus }: FormTextFieldProps) {
   const { control } = useFormContext<UserFormValues>();
 
   return (
@@ -54,15 +58,16 @@ function FormTextField({ name, label, required, type, multiline, minRows, hint, 
   );
 }
 
-export function UserFormDialog({ open, user, onClose }: Props) {
+export function UserFormDialog({ open, user, onClose }: UserFormDialogProps) {
   if (!open) return null;
   return <UserForm key={user?.id ?? "new"} user={user} onClose={onClose} />;
 }
 
-function UserForm({ user, onClose }: { user: User | null; onClose: () => void }) {
+function UserForm({ user, onClose }: UserFormProps) {
+  const { name, email, phone, city, company, position, avatar, about } = user ?? emptyUserForm;
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: user ? toFormValues(user) : emptyUserForm,
+    defaultValues: { name, email, phone, city, company, position, avatar, about },
   });
   const [addUser, addState] = useAddUserMutation();
   const [editUser, editState] = useEditUserMutation();
